@@ -1,3 +1,4 @@
+import '@/src/nativewind-setup';
 import '../global.css';
 
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
