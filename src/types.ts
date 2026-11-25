@@ -2,6 +2,40 @@ export const DISTRICTS = ['Nəsimi', 'Yasamal', 'Səbail', 'Nərimanov', 'Xətai
 export type District = (typeof DISTRICTS)[number];
 
 export type AppMode = 'owner' | 'sitter';
+
+/** İlk açılış: kimlər üçün istifadə edirsiniz */
+export type AccountKind = 'sahib' | 'baxici' | 'baytar' | 'dukan';
+
+export type SitterGoal = 'elas' | 'yarim' | 'tam';
+
+export type SitterOnboardingDraft = {
+  stepIndex: number;
+  contractSigned: boolean;
+  contractSignedAt?: string;
+  contractName?: string;
+  goal?: SitterGoal;
+  locationGranted: boolean;
+  address: string;
+  district: District;
+  homeType: HomeType;
+  carePetTypes: PetType[];
+  offersServices: ServiceId[];
+  hasOwnPets?: boolean;
+  ownPetTypes: PetType[];
+  ownPetPhotos: string[];
+  servicePrices: Partial<Record<ServiceId, number>>;
+  monthlyTarget: number;
+  shortBio: string;
+  experienceText: string;
+  gallery: string[];
+  legalFirstName: string;
+  legalLastName: string;
+  fin: string;
+  idPhoto?: string;
+  selfie?: string;
+  cardLast4?: string;
+  qualityPassed: boolean;
+};
 export type PetType = 'it' | 'pisik' | 'qus' | 'dovsan' | 'diger';
 export type PetSex = 'erkek' | 'disi';
 export type PetSize = 'kicik' | 'orta' | 'boyuk';
@@ -185,6 +219,19 @@ export type SitterProfile = {
   fin: string;
   planActive?: boolean;
   qualityPassed?: boolean;
+  contractSignedAt?: string;
+  onboardingComplete?: boolean;
+};
+
+export type SitterBizSettings = {
+  autoReplyEnabled: boolean;
+  autoReplyText: string;
+  smartPricing: boolean;
+  newClientDiscount: boolean;
+  returningClientOffer: boolean;
+  holidaySurcharge: boolean;
+  busyDaySurcharge: boolean;
+  calendarUpdatedAt?: string;
 };
 
 export type IncomingRequest = {

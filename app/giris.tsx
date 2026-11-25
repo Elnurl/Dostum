@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PawMark } from '@/components/PawMark';
 import { ScreenPad, Tap } from '@/components/ui';
 import { useApp } from '@/src/context/AppContext';
+import { homeHref } from '@/src/lib/appRoute';
 import { successTap, tap } from '@/src/lib/haptics';
 import { colors } from '@/src/theme';
 
@@ -37,13 +38,20 @@ function AuthPill({
 
 export default function GirisScreen() {
   const insets = useSafeAreaInsets();
-  const { signIn } = useApp();
+  const { signIn, accountKind, sitter, sitterDraft } = useApp();
 
   function enter(provider: Provider) {
     void tap();
     signIn(provider);
     void successTap();
-    router.replace('/(owner)');
+    router.replace(
+      homeHref({
+        signedIn: true,
+        accountKind,
+        sitterContractSigned: sitterDraft.contractSigned,
+        sitterOnboardingComplete: Boolean(sitter.onboardingComplete),
+      }) as '/(owner)',
+    );
   }
 
   return (
@@ -54,7 +62,12 @@ export default function GirisScreen() {
         <View className="items-center mt-8">
           <PawMark size={88} />
           <Text className="text-muted text-center mt-6 px-4 leading-5">
-            Bakıda etibarlı baxıcı tapın. Google, Apple və ya e-poçt ilə daxil olun (sınaq rejimi).
+            {accountKind === 'baxici'
+              ? 'Baxıcı qeydiyyatı: əvvəlcə sözləşmə, sonra təsdiqlənmiş profil.'
+              : accountKind === 'sahib'
+                ? 'Bakıda etibarlı baxıcı tapın.'
+                : 'Dostum — heyvanlar üçün bir platforma.'}{' '}
+            Google, Apple və ya e-poçt ilə davam edin (sınaq).
           </Text>
         </View>
 

@@ -18,8 +18,10 @@ import {
   defaultAvailability,
 } from '@/src/data/mock';
 import { addDaysIso, nightsBetween, todayIso, uid } from '@/src/lib/format';
+import { defaultSitterDraft, PET_TYPE_LABELS } from '@/src/lib/sitterOnboarding';
 import { notify, setupNotifications } from '@/src/lib/notifications';
 import type {
+  AccountKind,
   AppMode,
   Booking,
   CareReport,
@@ -29,6 +31,8 @@ import type {
   IncomingRequest,
   Pet,
   ServiceId,
+  SitterBizSettings,
+  SitterOnboardingDraft,
   SitterProfile,
   UserProfile,
   Walk,
@@ -56,6 +60,9 @@ type State = {
   notificationsOn: boolean;
   signedIn: boolean;
   authProvider?: 'google' | 'apple' | 'email';
+  accountKind: AccountKind | null;
+  sitterDraft: SitterOnboardingDraft;
+  sitterBiz: SitterBizSettings;
 };
 
 type Action =
@@ -88,7 +95,12 @@ type Action =
   | { type: 'SET_MEET_GREET'; chatId: string; stage: Chat['meetGreet'] }
   | { type: 'RATE_BOOKING'; id: string; rating: number; text: string }
   | { type: 'SIGN_IN'; provider: 'google' | 'apple' | 'email' }
-  | { type: 'SIGN_OUT' };
+  | { type: 'SIGN_OUT' }
+  | { type: 'SET_ACCOUNT_KIND'; kind: AccountKind }
+  | { type: 'SET_SITTER_DRAFT'; draft: SitterOnboardingDraft }
+  | { type: 'PATCH_SITTER_DRAFT'; patch: Partial<SitterOnboardingDraft> }
+  | { type: 'COMPLETE_SITTER_ONBOARDING' }
+  | { type: 'PATCH_SITTER_BIZ'; patch: Partial<SitterBizSettings> };
 
 const initialState: State = {
   ready: false,
@@ -108,6 +120,18 @@ const initialState: State = {
   availability: defaultAvailability(),
   notificationsOn: true,
   signedIn: false,
+  accountKind: null,
+  sitterDraft: defaultSitterDraft(),
+  sitterBiz: {
+    autoReplyEnabled: false,
+    autoReplyText:
+      'Salam! Mesajınıza görə təşəkkür edirəm. Dostunuz sakitdir, yoxsa enerjilidir? Başqa heyvanlarla necə üsləşir?',
+    smartPricing: false,
+    newClientDiscount: false,
+    returningClientOffer: false,
+    holidaySurcharge: false,
+    busyDaySurcharge: false,
+  },
 };
 
 function persistable(state: State): Partial<State> {
@@ -118,7 +142,14 @@ function persistable(state: State): Partial<State> {
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'HYDRATE': {
-      const merged = { ...state, ...action.state, ready: true };
+      const merged = {
+        ...state,
+        ...action.state,
+        ready: true,
+        accountKind: action.state.accountKind ?? null,
+        sitterDraft: { ...defaultSitterDraft(), ...action.state.sitterDraft },
+        sitterBiz: { ...initialState.sitterBiz, ...action.state.sitterBiz },
+      };
       const chats = (merged.chats ?? state.chats).map((c) => ({
         ...c,
         meetGreet:
@@ -349,7 +380,84 @@ function reducer(state: State, action: Action): State {
     case 'SIGN_IN':
       return { ...state, signedIn: true, authProvider: action.provider };
     case 'SIGN_OUT':
-      return { ...state, signedIn: false, authProvider: undefined };
+      return {
+        ...state,
+        signedIn: false,
+        authProvider: undefined,
+        accountKind: null,
+        sitterDraft: defaultSitterDraft(),
+      };
+    case 'SET_ACCOUNT_KIND':
+      return { ...state, accountKind: action.kind };
+    case 'SET_SITTER_DRAFT':
+      return { ...state, sitterDraft: action.draft };
+    case 'PATCH_SITTER_DRAFT':
+      return { ...state, sitterDraft: { ...state.sitterDraft, ...action.patch } };
+    case 'COMPLETE_SITTER_ONBOARDING': {
+      const d = state.sitterDraft;
+      const services = d.offersServices
+        .map((serviceId) => {
+          const price = d.servicePrices[serviceId] ?? 25;
+          const unit =
+            serviceId === 'it-gezdirme' ? 'saat' : serviceId === 'eve-bas-cekme' ? 'ziyarət' : 'gecə';
+          return { serviceId, price, unit };
+        })
+        .filter(Boolean);
+      const verified = Boolean(d.idPhoto && d.selfie && d.fin.trim().length >= 5);
+      const sitter: SitterProfile = {
+        ...state.sitter,
+        bio: d.experienceText.trim() || d.shortBio.trim() || state.sitter.bio,
+        district: d.district,
+        homeType: d.homeType,
+        hasOwnPets: Boolean(d.hasOwnPets),
+        ownPetsNote: d.hasOwnPets ? d.ownPetTypes.map((t) => PET_TYPE_LABELS[t] ?? t).join(', ') : '',
+        experienceYears: Math.max(1, Math.round(d.experienceText.split(/\s+/).length / 18)),
+        acceptedSizes: ['kicik', 'orta', 'boyuk'],
+        gallery: d.gallery.length ? d.gallery : state.sitter.gallery,
+        services: services.length ? services : state.sitter.services,
+        verified,
+        idPhoto: d.idPhoto,
+        selfie: d.selfie,
+        fin: d.fin.trim().toUpperCase(),
+        planActive: true,
+        qualityPassed: d.qualityPassed,
+        contractSignedAt: d.contractSignedAt,
+        onboardingComplete: true,
+      };
+      const user: UserProfile = {
+        ...state.user,
+        firstName: d.legalFirstName.trim() || state.user.firstName,
+        lastName: d.legalLastName.trim() || state.user.lastName,
+        address: d.address.trim() || state.user.address,
+        district: d.district,
+        avatar: d.selfie ?? state.user.avatar,
+      };
+      let wallet = state.wallet;
+      if (d.cardLast4 && !state.wallet.cards.some((c) => c.last4 === d.cardLast4)) {
+        wallet = {
+          ...wallet,
+          cards: [
+            ...wallet.cards,
+            {
+              id: uid('card'),
+              brand: 'Visa',
+              last4: d.cardLast4,
+              holder: `${d.legalFirstName} ${d.legalLastName}`.trim() || 'Baxıcı',
+            },
+          ],
+        };
+      }
+      return {
+        ...state,
+        mode: 'sitter',
+        sitter,
+        user,
+        wallet,
+        sitterDraft: { ...d, stepIndex: 0 },
+      };
+    }
+    case 'PATCH_SITTER_BIZ':
+      return { ...state, sitterBiz: { ...state.sitterBiz, ...action.patch } };
     default:
       return state;
   }
@@ -394,6 +502,12 @@ type Ctx = State & {
   rateBooking: (id: string, rating: number, text: string) => void;
   signIn: (provider: 'google' | 'apple' | 'email') => void;
   signOut: () => void;
+  setAccountKind: (kind: AccountKind) => void;
+  setSitterDraft: (draft: SitterOnboardingDraft) => void;
+  patchSitterDraft: (patch: Partial<SitterOnboardingDraft>) => void;
+  completeSitterOnboarding: () => void;
+  patchSitterBiz: (patch: Partial<SitterBizSettings>) => void;
+  touchSitterCalendar: () => void;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -856,6 +970,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SIGN_OUT' });
   }, []);
 
+  const setAccountKind = useCallback((kind: AccountKind) => dispatch({ type: 'SET_ACCOUNT_KIND', kind }), []);
+  const setSitterDraft = useCallback((draft: SitterOnboardingDraft) => dispatch({ type: 'SET_SITTER_DRAFT', draft }), []);
+  const patchSitterDraft = useCallback(
+    (patch: Partial<SitterOnboardingDraft>) => dispatch({ type: 'PATCH_SITTER_DRAFT', patch }),
+    [],
+  );
+  const completeSitterOnboarding = useCallback(() => dispatch({ type: 'COMPLETE_SITTER_ONBOARDING' }), []);
+  const patchSitterBiz = useCallback(
+    (patch: Partial<SitterBizSettings>) => dispatch({ type: 'PATCH_SITTER_BIZ', patch }),
+    [],
+  );
+  const touchSitterCalendar = useCallback(
+    () => dispatch({ type: 'PATCH_SITTER_BIZ', patch: { calendarUpdatedAt: new Date().toISOString() } }),
+    [],
+  );
+
   const sitterEarnings = useMemo(() => {
     const ownerBookings = state.bookings.filter((b) => b.forUserAs === 'owner');
     const blocked = ownerBookings
@@ -902,6 +1032,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       rateBooking,
       signIn,
       signOut,
+      setAccountKind,
+      setSitterDraft,
+      patchSitterDraft,
+      completeSitterOnboarding,
+      patchSitterBiz,
+      touchSitterCalendar,
     }),
     [
       state,
@@ -935,6 +1071,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       rateBooking,
       signIn,
       signOut,
+      setAccountKind,
+      setSitterDraft,
+      patchSitterDraft,
+      completeSitterOnboarding,
+      patchSitterBiz,
+      touchSitterCalendar,
     ],
   );
 

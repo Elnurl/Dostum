@@ -553,8 +553,9 @@ export const SITTER_PROFILE: SitterProfile = {
     { serviceId: 'geceleme', price: 25, unit: 'gecə' },
     { serviceId: 'eve-bas-cekme', price: 12, unit: 'ziyarət' },
   ],
-  verified: true,
-  fin: '1ABC2DE',
+  verified: false,
+  fin: '',
+  onboardingComplete: false,
 };
 
 export const REQUESTS: IncomingRequest[] = [

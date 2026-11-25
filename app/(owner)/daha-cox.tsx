@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,7 +13,7 @@ import { colors } from '@/src/theme';
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
-  const { user, pets, setAvatar } = useApp();
+  const { user, pets, setAvatar, setAccountKind } = useApp();
   const [photoOpen, setPhotoOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const name = user.firstName;
@@ -75,7 +75,14 @@ export default function MoreScreen() {
 
         <Row icon="sparkles-outline" label="AI köməkçi" onPress={() => router.push('/(owner)/komekci')} />
         <Row icon="shield-checkmark-outline" label="Platforma zəmanəti" onPress={() => router.push('/zemanet')} />
-        <Row icon="paw-outline" label="Baxıcı ol" onPress={() => router.push('/baxici-ol')} />
+        <Row
+          icon="paw-outline"
+          label="Baxıcı ol"
+          onPress={() => {
+            setAccountKind('baxici');
+            router.push('/baxici-qeydiyyat' as Href);
+          }}
+        />
         <Row icon="settings-outline" label="Tənzimləmələr" onPress={() => router.push('/tenzimlemeler')} last />
       </ScrollView>
       <PhotoSheet

@@ -1,9 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, EmptyState, ScreenHeader, ScreenPad, Tap } from '@/components/ui';
+import { Avatar, ScreenPad, Tap } from '@/components/ui';
 import { useApp } from '@/src/context/AppContext';
 import { formatTime } from '@/src/lib/format';
 import { tap } from '@/src/lib/haptics';
@@ -14,16 +15,31 @@ export default function SitterMessages() {
   const insets = useSafeAreaInsets();
   const { chats, messages, bookings } = useApp();
   const [refreshing, setRefreshing] = useState(false);
-  const list = chats.filter((c) => {
-    if (c.sitterId.startsWith('owner-')) return true;
-    const b = bookings.find((bk) => bk.id === c.bookingId);
-    return !!b && b.status === 'aktiv';
-  });
+  const [q, setQ] = useState('');
+  const list = useMemo(() => {
+    const base = chats.filter((c) => {
+      if (c.sitterId.startsWith('owner-')) return true;
+      const b = bookings.find((bk) => bk.id === c.bookingId);
+      return !!b && b.status === 'aktiv';
+    });
+    if (!q.trim()) return base;
+    const s = q.toLowerCase();
+    return base.filter((c) => c.title.toLowerCase().includes(s) || c.subtitle.toLowerCase().includes(s));
+  }, [chats, bookings, q]);
 
   return (
-    <ScreenPad>
-      <View style={{ paddingTop: insets.top + 8 }}>
-        <ScreenHeader title="Mesajlar" subtitle="Sahiblərlə yazışma və canlı hesabat" />
+    <ScreenPad className="bg-white">
+      <View style={{ paddingTop: insets.top + 8 }} className="px-4">
+        <View className="flex-row items-center bg-sheet rounded-full px-4 py-3 mb-2 border border-line">
+          <Ionicons name="search" size={18} color="#64748B" />
+          <TextInput
+            value={q}
+            onChangeText={setQ}
+            placeholder="Axtar"
+            className="flex-1 ml-2 text-ink"
+            placeholderTextColor="#64748B"
+          />
+        </View>
       </View>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
@@ -39,10 +55,10 @@ export default function SitterMessages() {
           />
         }>
         {list.length === 0 ? (
-          <EmptyState
-            title="Müştəri mesajı yoxdur"
-            text="Sorğunu qəbul etdikdə çat avtomatik açılır. Panelə qayıdıb sifariş qəbul edin."
-          />
+          <View className="items-center py-20 px-6">
+            <Text className="text-ink font-bold text-xl text-center">Hələ yazışma yoxdur</Text>
+            <Text className="text-muted text-center mt-2 leading-5">Sahiblərdən gələn mesajlar burada görünəcək.</Text>
+          </View>
         ) : (
           list.map((chat) => {
             const last = [...messages].reverse().find((m) => m.chatId === chat.id);

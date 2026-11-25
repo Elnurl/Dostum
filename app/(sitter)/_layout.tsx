@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { type Href, Redirect, Tabs } from 'expo-router';
 
 import { TabIcon } from '@/components/TabIcon';
 import { useApp } from '@/src/context/AppContext';
@@ -7,8 +7,14 @@ import { brand } from '@/src/lib/ui';
 import { colors } from '@/src/theme';
 
 export default function SitterTabs() {
-  const { chats, requests } = useApp();
+  const { chats, requests, accountKind, sitter, sitterBiz } = useApp();
   const unread = chats.filter((c) => c.sitterId.startsWith('owner-')).reduce((s, c) => s + c.unread, 0);
+  const moreBadge = 3 + (sitterBiz.autoReplyEnabled ? 0 : 1);
+  const homeBadge = sitterBiz.calendarUpdatedAt ? undefined : 1;
+
+  if (accountKind === 'baxici' && !sitter.onboardingComplete) {
+    return <Redirect href={'/baxici-qeydiyyat' as Href} />;
+  }
 
   return (
     <Tabs
@@ -28,19 +34,18 @@ export default function SitterTabs() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Panel',
-          tabBarBadge: requests.length || undefined,
-          tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'grid' : 'grid-outline'} color={color} />,
+          title: 'Ana səhifə',
+          tabBarBadge: homeBadge,
+          tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} color={color} />,
         }}
         listeners={{ tabPress: () => void tap() }}
       />
       <Tabs.Screen
-        name="teqvim"
+        name="sorqular"
         options={{
-          title: 'Təqvim',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'calendar' : 'calendar-outline'} color={color} />
-          ),
+          title: 'Sorğular',
+          tabBarBadge: requests.length || undefined,
+          tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'radio' : 'radio-outline'} color={color} />,
         }}
         listeners={{ tabPress: () => void tap() }}
       />
@@ -56,15 +61,26 @@ export default function SitterTabs() {
         listeners={{ tabPress: () => void tap() }}
       />
       <Tabs.Screen
-        name="profil"
+        name="musteriler"
         options={{
-          title: 'Baxıcı profili',
+          title: 'Müştərilər',
+          tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'people' : 'people-outline'} color={color} />,
+        }}
+        listeners={{ tabPress: () => void tap() }}
+      />
+      <Tabs.Screen
+        name="daha-cox"
+        options={{
+          title: 'Daha çox',
+          tabBarBadge: moreBadge,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'person' : 'person-outline'} color={color} />
+            <TabIcon name={focused ? 'ellipsis-horizontal' : 'ellipsis-horizontal-outline'} color={color} />
           ),
         }}
         listeners={{ tabPress: () => void tap() }}
       />
+      <Tabs.Screen name="teqvim" options={{ href: null }} />
+      <Tabs.Screen name="profil" options={{ href: null }} />
     </Tabs>
   );
 }
