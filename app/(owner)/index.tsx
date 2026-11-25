@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card, Divider, Logo, ScreenPad, SectionLabel, Tap } from '@/components/ui';
+import { GuaranteeHomeSection } from '@/components/GuaranteeHomeSection';
+import { PawMark } from '@/components/PawMark';
+import { Card, Divider, ScreenPad, SectionLabel, Tap } from '@/components/ui';
 import { SERVICES } from '@/src/data/catalog';
+import { accent } from '@/src/lib/ui';
 import { tap } from '@/src/lib/haptics';
 import { colors } from '@/src/theme';
 
@@ -16,17 +19,21 @@ export default function HomeScreen() {
   const ownerHome = SERVICES.filter((s) => s.group === 'owner-home');
 
   function openSearch(service?: string) {
-    router.push({ pathname: '/(owner)/axtaris', params: service ? { service } : {} });
+    if (service) {
+      router.navigate({ pathname: '/(owner)/axtaris', params: { service } });
+    } else {
+      router.navigate('/(owner)/axtaris');
+    }
   }
 
   return (
-    <ScreenPad>
+    <ScreenPad className="bg-white">
       <ScrollView
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 28, paddingHorizontal: 20 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            tintColor={colors.forest}
+            tintColor={accent}
             onRefresh={() => {
               void tap();
               setRefreshing(true);
@@ -34,10 +41,11 @@ export default function HomeScreen() {
             }}
           />
         }>
-        <View className="items-start mb-4">
-          <Logo height={28} />
-        </View>
-        <Text className="text-forest text-[28px] font-bold leading-8 mb-6">Dostunuza hansı qayğı lazımdır?</Text>
+        <PawMark size={40} showWordmark />
+        <Text className="text-ink text-[26px] font-bold leading-8 mt-5">Dostunuz sevəcək baxıcı tapın</Text>
+        <Text className="text-muted text-sm mt-2 mb-6 leading-5">
+          Sifarişdən əvvəl mesaj yazın — kart tələb olunmur. Yaşıl + narinci dostum brendi ilə etibarlı qayğı.
+        </Text>
 
         <SectionLabel>Baxıcının evində</SectionLabel>
         <Card className="mb-5 overflow-hidden">
@@ -73,16 +81,22 @@ export default function HomeScreen() {
           ))}
         </Card>
 
-        <Tap onPress={() => openSearch()} className="bg-white rounded-2xl px-4 py-4 flex-row items-center">
+        <Tap
+          onPress={() => openSearch()}
+          className="bg-white border border-line rounded-2xl px-4 py-4 flex-row items-center">
           <View className="w-10 h-10 rounded-full bg-moss items-center justify-center mr-3">
-            <Ionicons name="search" size={20} color={colors.forest} />
+            <Ionicons name="search" size={20} color={accent} />
           </View>
           <View className="flex-1">
-            <Text className="text-ink font-semibold text-base">Baxıcı tap</Text>
-            <Text className="text-muted text-sm">Ərazi və tarixə görə axtarış</Text>
+            <Text className="text-forest font-bold text-base">
+              Baxıcı tap<Text className="text-amber">.</Text>
+            </Text>
+            <Text className="text-muted text-sm">Filtrlər və tarix</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </Tap>
+
+        <GuaranteeHomeSection />
       </ScrollView>
     </ScreenPad>
   );

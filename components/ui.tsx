@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { PawMark } from '@/components/PawMark';
 import { tap } from '@/src/lib/haptics';
 import { colors } from '@/src/theme';
 
@@ -17,11 +18,20 @@ export function Logo({ height = 32 }: { height?: number }) {
 }
 
 export function ScreenPad({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <View className={`flex-1 bg-cream ${className}`}>{children}</View>;
+  return <View className={`flex-1 bg-sheet ${className}`}>{children}</View>;
+}
+
+export function ScreenHeader({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <View className="px-5 pb-2">
+      <Text className="text-ink font-bold text-2xl">{title}</Text>
+      {subtitle ? <Text className="text-muted text-sm mt-1">{subtitle}</Text> : null}
+    </View>
+  );
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <View className={`bg-white rounded-2xl ${className}`}>{children}</View>;
+  return <View className={`bg-white border border-line rounded-2xl ${className}`}>{children}</View>;
 }
 
 export function Title({ children, className = '' }: { children: ReactNode; className?: string }) {
@@ -61,14 +71,14 @@ export function PrimaryButton({
   label,
   onPress,
   disabled,
-  tone = 'amber',
+  tone = 'forest',
 }: {
   label: string;
   onPress?: () => void;
   disabled?: boolean;
   tone?: 'amber' | 'forest';
 }) {
-  const bg = tone === 'forest' ? 'bg-forest' : 'bg-amber';
+  const bg = tone === 'amber' ? 'bg-amber' : 'bg-forest';
   return (
     <Tap onPress={onPress} disabled={disabled} className={`${bg} rounded-2xl py-4 items-center`}>
       <Text className="text-white font-bold text-base">{label}</Text>
@@ -78,8 +88,8 @@ export function PrimaryButton({
 
 export function GhostButton({ label, onPress }: { label: string; onPress?: () => void }) {
   return (
-    <Tap onPress={onPress} className="rounded-2xl py-4 items-center border border-line bg-white">
-      <Text className="text-ink font-semibold">{label}</Text>
+    <Tap onPress={onPress} className="rounded-2xl py-4 items-center border border-forest/25 bg-white">
+      <Text className="text-forest font-semibold">{label}</Text>
     </Tap>
   );
 }
@@ -132,9 +142,9 @@ export function EmptyState({ title, text }: { title: string; text: string }) {
 
 export function LoadingScreen() {
   return (
-    <View className="flex-1 bg-cream items-center justify-center">
-      <Logo height={40} />
-      <ActivityIndicator color={colors.forest} style={{ marginTop: 18 }} />
+    <View className="flex-1 bg-white items-center justify-center">
+      <PawMark size={80} />
+      <ActivityIndicator color={colors.forest} style={{ marginTop: 22 }} />
     </View>
   );
 }

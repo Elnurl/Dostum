@@ -54,6 +54,8 @@ type State = {
   requests: IncomingRequest[];
   availability: Record<string, DayStatus>;
   notificationsOn: boolean;
+  signedIn: boolean;
+  authProvider?: 'google' | 'apple' | 'email';
 };
 
 type Action =
@@ -65,7 +67,7 @@ type Action =
   | { type: 'UPSERT_PET'; pet: Pet }
   | { type: 'REMOVE_PET'; id: string }
   | { type: 'TOGGLE_FAV'; id: string }
-  | { type: 'ADD_BOOKING'; booking: Booking; chat: Chat; message: ChatMessage }
+  | { type: 'ADD_BOOKING'; booking: Booking; chat: Chat; message: ChatMessage; request?: IncomingRequest }
   | { type: 'SET_BOOKING_STATUS'; id: string; status: Booking['status'] }
   | { type: 'SEND_MESSAGE'; message: ChatMessage }
   | { type: 'MARK_CHAT_READ'; chatId: string }
@@ -81,7 +83,12 @@ type Action =
   | { type: 'TOPUP'; amount: number }
   | { type: 'PAYOUT'; amount: number }
   | { type: 'ADD_CARD'; last4: string }
-  | { type: 'TOGGLE_NOTIF' };
+  | { type: 'TOGGLE_NOTIF' }
+  | { type: 'ADD_CHAT'; chat: Chat; intro?: ChatMessage }
+  | { type: 'SET_MEET_GREET'; chatId: string; stage: Chat['meetGreet'] }
+  | { type: 'RATE_BOOKING'; id: string; rating: number; text: string }
+  | { type: 'SIGN_IN'; provider: 'google' | 'apple' | 'email' }
+  | { type: 'SIGN_OUT' };
 
 const initialState: State = {
   ready: false,
@@ -100,6 +107,7 @@ const initialState: State = {
   requests: REQUESTS,
   availability: defaultAvailability(),
   notificationsOn: true,
+  signedIn: false,
 };
 
 function persistable(state: State): Partial<State> {
@@ -109,8 +117,17 @@ function persistable(state: State): Partial<State> {
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case 'HYDRATE':
-      return { ...state, ...action.state, ready: true };
+    case 'HYDRATE': {
+      const merged = { ...state, ...action.state, ready: true };
+      const chats = (merged.chats ?? state.chats).map((c) => ({
+        ...c,
+        meetGreet:
+          c.meetGreet ??
+          (c.bookingId || c.sitterId.startsWith('owner-') ? ('sifaris' as const) : ('mesaj' as const)),
+        freeChat: c.freeChat ?? !c.bookingId,
+      }));
+      return { ...merged, chats };
+    }
     case 'READY':
       return { ...state, ready: true };
     case 'SET_MODE':
@@ -141,6 +158,7 @@ function reducer(state: State, action: Action): State {
         bookings: [action.booking, ...state.bookings],
         chats: [action.chat, ...state.chats.filter((c) => c.id !== action.chat.id)],
         messages: [...state.messages, action.message],
+        requests: action.request ? [action.request, ...state.requests] : state.requests,
         wallet: {
           ...state.wallet,
           available: Math.max(0, state.wallet.available - action.booking.total),
@@ -175,7 +193,7 @@ function reducer(state: State, action: Action): State {
             ...wallet.history,
           ],
         };
-        if (booking.forUserAs === 'sitter') {
+        if (booking.forUserAs === 'sitter' || booking.forUserAs === 'owner') {
           wallet = {
             ...wallet,
             sitterMonth: wallet.sitterMonth + booking.subtotal,
@@ -243,11 +261,14 @@ function reducer(state: State, action: Action): State {
     case 'SET_ACCEPTING':
       return { ...state, accepting: action.value };
     case 'DECIDE_REQUEST': {
-      const next: State = { ...state, requests: state.requests.filter((r) => r.id !== action.id) };
+      const next: State = {
+        ...state,
+        requests: state.requests.filter((r) => r.id !== action.id),
+        messages: action.message ? [...state.messages, action.message] : state.messages,
+      };
       if (action.accept && action.booking && action.chat && action.message) {
         next.bookings = [action.booking, ...next.bookings];
         next.chats = [action.chat, ...next.chats];
-        next.messages = [...next.messages, action.message];
         next.availability = { ...next.availability, [action.booking.startDate]: 'busy' };
       }
       return next;
@@ -306,6 +327,29 @@ function reducer(state: State, action: Action): State {
       };
     case 'TOGGLE_NOTIF':
       return { ...state, notificationsOn: !state.notificationsOn };
+    case 'ADD_CHAT': {
+      const chats = [action.chat, ...state.chats.filter((c) => c.id !== action.chat.id)];
+      const messages = action.intro ? [action.intro, ...state.messages] : state.messages;
+      return { ...state, chats, messages };
+    }
+    case 'SET_MEET_GREET':
+      return {
+        ...state,
+        chats: state.chats.map((c) => (c.id === action.chatId ? { ...c, meetGreet: action.stage } : c)),
+      };
+    case 'RATE_BOOKING':
+      return {
+        ...state,
+        bookings: state.bookings.map((b) =>
+          b.id === action.id
+            ? { ...b, ownerReview: { rating: action.rating, text: action.text, at: new Date().toISOString() } }
+            : b,
+        ),
+      };
+    case 'SIGN_IN':
+      return { ...state, signedIn: true, authProvider: action.provider };
+    case 'SIGN_OUT':
+      return { ...state, signedIn: false, authProvider: undefined };
     default:
       return state;
   }
@@ -323,7 +367,14 @@ type Ctx = State & {
   setBookingStatus: (id: string, status: Booking['status']) => void;
   sendMessage: (chatId: string, text: string) => void;
   markChatRead: (chatId: string) => void;
-  sendReport: (input: { bookingId: string; chatId: string; note: string; photoUri?: string; tasks: string[] }) => void;
+  sendReport: (input: {
+    bookingId: string;
+    chatId: string;
+    note: string;
+    photoUri?: string;
+    videoUri?: string;
+    tasks: string[];
+  }) => void;
   startWalk: (bookingId: string, chatId: string) => Promise<void>;
   stopWalk: (walkId: string) => void;
   setAccepting: (value: boolean) => void;
@@ -336,6 +387,13 @@ type Ctx = State & {
   addCard: (last4: string) => void;
   toggleNotifications: () => void;
   sitterById: (id: string) => (typeof SITTERS)[number] | undefined;
+  sitterEarnings: { month: number; blocked: number; ready: number };
+  ensureChatWithSitter: (sitterId: string, opts?: { intro?: string }) => string;
+  setMeetGreet: (chatId: string, stage: Chat['meetGreet']) => void;
+  sendFreeInquiry: (sitterIds: string[], text: string) => void;
+  rateBooking: (id: string, rating: number, text: string) => void;
+  signIn: (provider: 'google' | 'apple' | 'email') => void;
+  signOut: () => void;
 };
 
 const AppContext = createContext<Ctx | null>(null);
@@ -391,11 +449,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const savePet = useCallback((pet: Pet) => dispatch({ type: 'UPSERT_PET', pet }), []);
   const removePet = useCallback((id: string) => dispatch({ type: 'REMOVE_PET', id }), []);
   const toggleFavorite = useCallback((id: string) => dispatch({ type: 'TOGGLE_FAV', id }), []);
-  const setBookingStatus = useCallback((id: string, status: Booking['status']) => {
-    dispatch({ type: 'SET_BOOKING_STATUS', id, status });
-    if (status === 'aktiv') void notify('Sifariş qəbul olundu', 'Baxıcı sifarişinizi qəbul etdi.');
-    if (status === 'tamamlanmis') void notify('Xidmət tamamlandı', 'Escrow açıdı, ödəniş baxıcıya keçdi.');
-  }, []);
+  const pushNotify = useCallback(
+    (title: string, body: string) => {
+      if (state.notificationsOn) void notify(title, body);
+    },
+    [state.notificationsOn],
+  );
+
+  const setBookingStatus = useCallback(
+    (id: string, status: Booking['status']) => {
+      dispatch({ type: 'SET_BOOKING_STATUS', id, status });
+      if (status === 'aktiv') pushNotify('Sifariş qəbul olundu', 'Baxıcı sifarişinizi qəbul etdi.');
+      if (status === 'tamamlanmis') pushNotify('Xidmət tamamlandı', 'Escrow açıdı, ödəniş baxıcıya keçdi.');
+      if (status === 'imtina') pushNotify('Sifariş ləğv olundu', 'Escrow məbləği qaytarıldı.');
+    },
+    [pushNotify],
+  );
 
   const createBooking = useCallback<Ctx['createBooking']>(
     ({ sitterId, serviceId, petIds, startDate, endDate, hours }) => {
@@ -425,14 +494,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createdAt: new Date().toISOString(),
       };
       const existing = state.chats.find((c) => c.sitterId === sitterId);
-      const chat: Chat = existing ?? {
-        id: uid('c'),
-        sitterId,
-        title: sitter?.name ?? 'Baxıcı',
-        subtitle: 'Yeni sifariş göndərildi',
-        photo: sitter?.photo ?? '',
-        unread: 1,
+      const chat: Chat = {
+        ...(existing ?? {
+          id: uid('c'),
+          sitterId,
+          title: sitter?.name ?? 'Baxıcı',
+          photo: sitter?.photo ?? '',
+          unread: 1,
+        }),
+        subtitle: 'Sifariş göndərildi',
         bookingId: booking.id,
+        meetGreet: 'sifaris',
+        freeChat: false,
       };
       const message: ChatMessage = {
         id: uid('m'),
@@ -442,11 +515,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
         text: `Sifariş göndərildi: ${catalog?.title ?? serviceId}. Məbləğ ${booking.total} ₼ escrow-da bloklandı.`,
         at: new Date().toISOString(),
       };
-      dispatch({ type: 'ADD_BOOKING', booking, chat: { ...chat, bookingId: booking.id, unread: 1 }, message });
-      void notify('Sifariş göndərildi', `${sitter?.name ?? 'Baxıcı'} cavabını gözləyir. Məbləğ təhlükəsiz saxlanılır.`);
+      const petsSelected = state.pets.filter((p) => petIds.includes(p.id));
+      const firstPet = petsSelected[0];
+      const request: IncomingRequest = {
+        id: uid('req'),
+        bookingId: booking.id,
+        ownerName: booking.ownerName,
+        petName: petsSelected.map((p) => p.name).join(', ') || firstPet?.name || 'Dost',
+        petType: firstPet?.type ?? 'it',
+        petAge: firstPet?.ageYears ?? 1,
+        petBreed: firstPet?.breed ?? 'Qarışıq',
+        note:
+          petsSelected
+            .map((p) => `${p.name}: ${p.breed}, çəki ${p.weightKg} kq, ${p.behavior || 'sakin'}`)
+            .join(' · ') || 'Sahib əlavə qeyd yazmayıb.',
+        serviceId,
+        startDate,
+        endDate,
+        hours: booking.hours,
+        earn: booking.subtotal,
+      };
+      dispatch({
+        type: 'ADD_BOOKING',
+        booking,
+        chat: { ...chat, bookingId: booking.id, unread: 1 },
+        message,
+        request,
+      });
+      pushNotify('Sifariş göndərildi', `${sitter?.name ?? 'Baxıcı'} cavabını gözləyir. Məbləğ təhlükəsiz saxlanılır.`);
       return booking;
     },
-    [state.user, state.chats],
+    [state.user, state.chats, state.pets, pushNotify],
   );
 
   const sendMessage = useCallback((chatId: string, text: string) => {
@@ -458,28 +557,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const markChatRead = useCallback((chatId: string) => dispatch({ type: 'MARK_CHAT_READ', chatId }), []);
 
-  const sendReport = useCallback<Ctx['sendReport']>(({ bookingId, chatId, note, photoUri, tasks }) => {
-    const report: CareReport = {
-      id: uid('rep'),
-      bookingId,
-      chatId,
-      note,
-      photoUri,
-      tasks,
-      at: new Date().toISOString(),
-    };
-    const message: ChatMessage = {
-      id: uid('m'),
-      chatId,
-      fromMe: true,
-      kind: photoUri ? 'photo' : 'task',
-      text: note || tasks.join(', '),
-      photoUri,
-      at: report.at,
-    };
-    dispatch({ type: 'ADD_REPORT', report, message });
-    void notify('Yeni qayğı hesabatı', note || 'Baxıcı tapşırıqları yenilədi.');
-  }, []);
+  const sendReport = useCallback<Ctx['sendReport']>(
+    ({ bookingId, chatId, note, photoUri, videoUri, tasks }) => {
+      const report: CareReport = {
+        id: uid('rep'),
+        bookingId,
+        chatId,
+        note,
+        photoUri: photoUri ?? videoUri,
+        tasks,
+        at: new Date().toISOString(),
+      };
+      const message: ChatMessage = {
+        id: uid('m'),
+        chatId,
+        fromMe: true,
+        kind: videoUri ? 'video' : photoUri ? 'photo' : 'task',
+        text: note || tasks.join(', '),
+        photoUri,
+        videoUri,
+        at: report.at,
+      };
+      dispatch({ type: 'ADD_REPORT', report, message });
+      pushNotify('Yeni qayğı hesabatı', note || 'Baxıcı tapşırıqları yenilədi.');
+    },
+    [pushNotify],
+  );
 
   const startWalk = useCallback(async (bookingId: string, chatId: string) => {
     let point = BAKU_WALK[0];
@@ -509,8 +612,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       at: walk.startedAt,
     };
     dispatch({ type: 'START_WALK', walk, message });
-    void notify('Gəzinti başladı', 'Canlı marşrut sahibə göndərilir.');
-  }, []);
+    pushNotify('Gəzinti başladı', 'Canlı marşrut sahibə göndərilir.');
+  }, [pushNotify]);
 
   const stopWalk = useCallback((walkId: string) => {
     const walk = state.walks.find((w) => w.id === walkId);
@@ -535,6 +638,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (id: string, accept: boolean) => {
       const req = state.requests.find((r) => r.id === id);
       if (!req) return;
+
+      if (req.bookingId) {
+        const booking = state.bookings.find((b) => b.id === req.bookingId);
+        const chat = state.chats.find((c) => c.bookingId === req.bookingId);
+        dispatch({ type: 'DECIDE_REQUEST', id, accept: false });
+
+        if (!accept) {
+          if (booking) dispatch({ type: 'SET_BOOKING_STATUS', id: booking.id, status: 'imtina' });
+          pushNotify('Sorğu imtina edildi', `${req.ownerName} — sorğu rədd olundu.`);
+          return;
+        }
+
+        if (booking) {
+          dispatch({ type: 'SET_BOOKING_STATUS', id: booking.id, status: 'aktiv' });
+          dispatch({ type: 'SET_DAY', date: booking.startDate, status: 'busy' });
+          if (chat) {
+            dispatch({
+              type: 'SEND_MESSAGE',
+              message: {
+                id: uid('m'),
+                chatId: chat.id,
+                fromMe: true,
+                kind: 'system',
+                text: 'Sifarişi qəbul etdiniz. Canlı hesabat və GPS göndərə bilərsiniz.',
+                at: new Date().toISOString(),
+              },
+            });
+          }
+          pushNotify('Sifariş qəbul edildi', `${req.petName} · ${req.earn} ₼ qazanc.`);
+        }
+        return;
+      }
+
       if (!accept) {
         dispatch({ type: 'DECIDE_REQUEST', id, accept: false });
         return;
@@ -575,9 +711,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         at: new Date().toISOString(),
       };
       dispatch({ type: 'DECIDE_REQUEST', id, accept: true, booking, chat, message });
-      void notify('Yeni sifariş', `${req.ownerName} — ${req.petName}`);
+      pushNotify('Yeni sifariş', `${req.ownerName} — ${req.petName}`);
     },
-    [state.requests],
+    [state.requests, state.bookings, state.chats, pushNotify],
   );
 
   const setSitter = useCallback((sitter: SitterProfile) => dispatch({ type: 'SET_SITTER', sitter }), []);
@@ -603,6 +739,134 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addCard = useCallback((last4: string) => dispatch({ type: 'ADD_CARD', last4 }), []);
   const toggleNotifications = useCallback(() => dispatch({ type: 'TOGGLE_NOTIF' }), []);
   const sitterById = useCallback((id: string) => SITTERS.find((s) => s.id === id), []);
+
+  const ensureChatWithSitter = useCallback(
+    (sitterId: string, opts?: { intro?: string }) => {
+      const existing = state.chats.find((c) => c.sitterId === sitterId && !c.sitterId.startsWith('owner-'));
+      if (existing) {
+        if (opts?.intro?.trim()) {
+          dispatch({
+            type: 'SEND_MESSAGE',
+            message: {
+              id: uid('m'),
+              chatId: existing.id,
+              fromMe: true,
+              kind: 'text',
+              text: opts.intro.trim(),
+              at: new Date().toISOString(),
+            },
+          });
+        }
+        return existing.id;
+      }
+      const sitter = SITTERS.find((s) => s.id === sitterId);
+      const chatId = uid('c');
+      const chat: Chat = {
+        id: chatId,
+        sitterId,
+        title: sitter?.name ?? 'Baxıcı',
+        subtitle: 'Pulsuz mesaj — kart tələb olunmur',
+        photo: sitter?.photo ?? '',
+        unread: 0,
+        meetGreet: 'mesaj',
+        freeChat: true,
+      };
+      const intro: ChatMessage = {
+        id: uid('m'),
+        chatId,
+        fromMe: false,
+        kind: 'system',
+        text: 'Salam! Sualınızı yaza bilərsiniz. Mesajlar pulsuzdur — kart tələb olunmur.',
+        at: new Date().toISOString(),
+      };
+      dispatch({ type: 'ADD_CHAT', chat, intro });
+      if (opts?.intro?.trim()) {
+        dispatch({
+          type: 'SEND_MESSAGE',
+          message: {
+            id: uid('m'),
+            chatId,
+            fromMe: true,
+            kind: 'text',
+            text: opts.intro.trim(),
+            at: new Date().toISOString(),
+          },
+        });
+      }
+      return chatId;
+    },
+    [state.chats],
+  );
+
+  const setMeetGreet = useCallback(
+    (chatId: string, stage: Chat['meetGreet']) => {
+      dispatch({ type: 'SET_MEET_GREET', chatId, stage });
+      if (stage === 'gorus') {
+        dispatch({
+          type: 'SEND_MESSAGE',
+          message: {
+            id: uid('m'),
+            chatId,
+            fromMe: false,
+            kind: 'system',
+            text: 'Görüş və ya qısa zəng planlaşdırıldı. Razı olduqdan sonra sifariş edə bilərsiniz.',
+            at: new Date().toISOString(),
+          },
+        });
+      }
+      if (stage === 'hazir') {
+        dispatch({
+          type: 'SEND_MESSAGE',
+          message: {
+            id: uid('m'),
+            chatId,
+            fromMe: false,
+            kind: 'system',
+            text: 'Görüş təsdiqləndi — indi sifariş edə bilərsiniz.',
+            at: new Date().toISOString(),
+          },
+        });
+      }
+    },
+    [],
+  );
+
+  const sendFreeInquiry = useCallback(
+    (sitterIds: string[], text: string) => {
+      const body =
+        text.trim() ||
+        'Salam! Yaxın günlərdə dostuma qayğı lazımdır. Boşluğunuz və qiymət barədə məlumat verə bilərsinizmi?';
+      sitterIds.forEach((sid) => {
+        ensureChatWithSitter(sid, { intro: body });
+      });
+    },
+    [ensureChatWithSitter],
+  );
+
+  const rateBooking = useCallback((id: string, rating: number, text: string) => {
+    dispatch({ type: 'RATE_BOOKING', id, rating, text });
+    pushNotify('Rəy göndərildi', 'Baxıcı reytinqinə təsir edəcək.');
+  }, [pushNotify]);
+
+  const signIn = useCallback((provider: 'google' | 'apple' | 'email') => {
+    dispatch({ type: 'SIGN_IN', provider });
+  }, []);
+
+  const signOut = useCallback(() => {
+    dispatch({ type: 'SIGN_OUT' });
+  }, []);
+
+  const sitterEarnings = useMemo(() => {
+    const ownerBookings = state.bookings.filter((b) => b.forUserAs === 'owner');
+    const blocked = ownerBookings
+      .filter((b) => b.status === 'gozlemede' || b.status === 'aktiv')
+      .reduce((sum, b) => sum + b.subtotal, 0);
+    return {
+      month: state.wallet.sitterMonth,
+      blocked,
+      ready: state.wallet.sitterReady,
+    };
+  }, [state.bookings, state.wallet.sitterMonth, state.wallet.sitterReady]);
 
   const value = useMemo<Ctx>(
     () => ({
@@ -631,6 +895,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCard,
       toggleNotifications,
       sitterById,
+      sitterEarnings,
+      ensureChatWithSitter,
+      setMeetGreet,
+      sendFreeInquiry,
+      rateBooking,
+      signIn,
+      signOut,
     }),
     [
       state,
@@ -657,6 +928,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addCard,
       toggleNotifications,
       sitterById,
+      sitterEarnings,
+      ensureChatWithSitter,
+      setMeetGreet,
+      sendFreeInquiry,
+      rateBooking,
+      signIn,
+      signOut,
     ],
   );
 

@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, EmptyState, ScreenPad, Tap } from '@/components/ui';
+import { Avatar, EmptyState, ScreenHeader, ScreenPad, Tap } from '@/components/ui';
 import { useApp } from '@/src/context/AppContext';
 import { formatTime } from '@/src/lib/format';
+import { meetGreetLabel } from '@/src/lib/meetGreet';
 import { tap } from '@/src/lib/haptics';
-import { colors } from '@/src/theme';
+import { accent } from '@/src/lib/ui';
 
 export default function OwnerMessages() {
   const insets = useSafeAreaInsets();
@@ -17,16 +18,18 @@ export default function OwnerMessages() {
 
   return (
     <ScreenPad>
-      <View style={{ paddingTop: insets.top + 8 }} className="px-5 pb-2">
-        <Text className="text-ink font-bold text-2xl">Mesajlar</Text>
-        <Text className="text-muted text-sm mt-1">Baxıcılarla yazışma və canlı hesabatlar</Text>
+      <View style={{ paddingTop: insets.top + 8 }}>
+        <ScreenHeader
+          title="Mesajlar"
+          subtitle="Pulsuz mesaj · görüş · sonra sifariş. Aktiv sifarişdə canlı hesabat."
+        />
       </View>
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            tintColor={colors.forest}
+            tintColor={accent}
             onRefresh={() => {
               void tap();
               setRefreshing(true);
@@ -35,7 +38,10 @@ export default function OwnerMessages() {
           />
         }>
         {list.length === 0 ? (
-          <EmptyState title="Hələ mesaj yoxdur" text="Sifariş verdikdə baxıcı ilə çat burada açılacaq." />
+          <EmptyState
+            title="Hələ mesaj yoxdur"
+            text="Axtarışdan baxıcıya pulsuz mesaj yazın və ya siyahıda + ilə toplu sorğu göndərin."
+          />
         ) : (
           list.map((chat) => {
             const last = [...messages].reverse().find((m) => m.chatId === chat.id);
@@ -43,7 +49,7 @@ export default function OwnerMessages() {
               <Tap
                 key={chat.id}
                 onPress={() => router.push(`/chat/${chat.id}`)}
-                className="bg-white rounded-2xl p-3 mb-3 flex-row items-center">
+                className="bg-white border border-line rounded-2xl p-3 mb-3 flex-row items-center">
                 <Avatar uri={chat.photo} name={chat.title} size={52} />
                 <View className="flex-1 ml-3">
                   <View className="flex-row items-center justify-between">
@@ -53,9 +59,14 @@ export default function OwnerMessages() {
                   <Text className="text-muted text-sm mt-0.5" numberOfLines={1}>
                     {last?.text ?? chat.subtitle}
                   </Text>
+                  {meetGreetLabel(chat.meetGreet) ? (
+                    <Text className="text-forest text-[11px] font-semibold mt-0.5">
+                      {meetGreetLabel(chat.meetGreet)}
+                    </Text>
+                  ) : null}
                 </View>
                 {chat.unread > 0 ? (
-                  <View className="bg-badge min-w-[20px] h-5 px-1.5 rounded-full items-center justify-center ml-2">
+                  <View className="bg-amber min-w-[20px] h-5 px-1.5 rounded-full items-center justify-center ml-2">
                     <Text className="text-white text-[11px] font-bold">{chat.unread}</Text>
                   </View>
                 ) : null}

@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { TabIcon } from '@/components/TabIcon';
 import { useApp } from '@/src/context/AppContext';
 import { tap } from '@/src/lib/haptics';
+import { brand } from '@/src/lib/ui';
 import { colors } from '@/src/theme';
 
 export default function OwnerTabs() {
@@ -14,7 +15,7 @@ export default function OwnerTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.forest,
+        tabBarActiveTintColor: brand,
         tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarStyle: {
@@ -52,6 +53,16 @@ export default function OwnerTabs() {
           tabBarBadge: unread || undefined,
           tabBarIcon: ({ color, focused }) => (
             <TabIcon name={focused ? 'chatbubble' : 'chatbubble-outline'} color={color} />
+          ),
+        }}
+        listeners={{ tabPress: () => void tap() }}
+      />
+      <Tabs.Screen
+        name="komekci"
+        options={{
+          title: 'Köməkçi',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'sparkles' : 'sparkles-outline'} color={color} />
           ),
         }}
         listeners={{ tabPress: () => void tap() }}

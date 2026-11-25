@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Header } from '@/components/Header';
 import { WalkMap } from '@/components/WalkMap';
-import { Card, GhostButton, PrimaryButton, ScreenPad, StatusPill } from '@/components/ui';
+import { Card, GhostButton, PrimaryButton, ScreenPad, StatusPill, Tap } from '@/components/ui';
 import { Image } from 'expo-image';
 import { useApp } from '@/src/context/AppContext';
 import { formatDateLong, manat, SERVICE_LABEL } from '@/src/lib/format';
@@ -11,7 +12,9 @@ import { colors } from '@/src/theme';
 
 export default function ReservationDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { bookings, sitterById, pets, reports, walks, setBookingStatus, chats } = useApp();
+  const { bookings, sitterById, pets, reports, walks, setBookingStatus, chats, rateBooking } = useApp();
+  const [stars, setStars] = useState(5);
+  const [review, setReview] = useState('');
   const booking = bookings.find((b) => b.id === id);
 
   if (!booking) {
@@ -83,27 +86,26 @@ export default function ReservationDetail() {
 
         {chat ? (
           <View className="mt-3">
-            <PrimaryButton label="Mesajlara keç" tone="forest" onPress={() => router.push(`/chat/${chat.id}`)} />
+            <PrimaryButton label="Mesajlara keç" onPress={() => router.push(`/chat/${chat.id}`)} />
           </View>
         ) : null}
 
         {booking.status === 'gozlemede' && booking.forUserAs === 'owner' ? (
-          <View className="mt-3 gap-2">
-            <PrimaryButton
-              label="Baxıcı qəbulunu simulyasiya et"
-              onPress={() => {
-                setBookingStatus(booking.id, 'aktiv');
-                Alert.alert('Qəbul olundu', 'Sifariş aktivdir. Canlı izləmə açıldı.');
-              }}
-            />
-            <GhostButton
-              label="Ləğv et və escrow-u qaytar"
-              onPress={() => {
-                setBookingStatus(booking.id, 'imtina');
-                Alert.alert('Ləğv edildi', 'Məbləğ balansınıza qaytarıldı.');
-              }}
-            />
-          </View>
+          <Card className="p-4 mt-3">
+            <Text className="text-ink font-semibold">Baxıcının cavabı gözlənilir</Text>
+            <Text className="text-muted text-sm mt-1">
+              Pul escrow-da bloklanıb. Baxıcı panelindən (Baxıcı ol → Panel) sorğu qəbul olunanda aktiv olacaq.
+            </Text>
+            <View className="mt-3">
+              <GhostButton
+                label="Ləğv et və escrow-u qaytar"
+                onPress={() => {
+                  setBookingStatus(booking.id, 'imtina');
+                  Alert.alert('Ləğv edildi', 'Məbləğ balansınıza qaytarıldı.');
+                }}
+              />
+            </View>
+          </Card>
         ) : null}
 
         {booking.status === 'aktiv' ? (
@@ -112,10 +114,46 @@ export default function ReservationDetail() {
               label="Xidməti tamamla"
               onPress={() => {
                 setBookingStatus(booking.id, 'tamamlanmis');
-                Alert.alert('Tamamlandı', 'Escrow açıldı.');
+                Alert.alert('Tamamlandı', 'Escrow açıldı. İndi rəy yaza bilərsiniz.');
               }}
             />
           </View>
+        ) : null}
+
+        {booking.status === 'tamamlanmis' && !booking.ownerReview ? (
+          <Card className="p-4 mt-4">
+            <Text className="text-ink font-bold text-lg mb-2">Baxıcıya rəy verin</Text>
+            <View className="flex-row mb-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Tap key={n} onPress={() => setStars(n)} className="mr-2">
+                  <Text className={`text-2xl ${n <= stars ? 'text-amber' : 'text-line'}`}>★</Text>
+                </Tap>
+              ))}
+            </View>
+            <TextInput
+              value={review}
+              onChangeText={setReview}
+              placeholder="Təcrübənizi qısaca yazın..."
+              className="bg-white border border-line rounded-xl px-3 py-3 text-ink mb-3"
+              multiline
+            />
+            <PrimaryButton
+              label="Rəyi göndər"
+              disabled={!review.trim()}
+              onPress={() => {
+                rateBooking(booking.id, stars, review.trim());
+                Alert.alert('Təşəkkürlər', 'Rəyiniz qeydə alındı.');
+                setReview('');
+              }}
+            />
+          </Card>
+        ) : null}
+
+        {booking.ownerReview ? (
+          <Card className="p-4 mt-4">
+            <Text className="text-ink font-semibold">Sizin rəyiniz · ★ {booking.ownerReview.rating}</Text>
+            <Text className="text-muted mt-1">{booking.ownerReview.text}</Text>
+          </Card>
         ) : null}
       </ScrollView>
     </ScreenPad>

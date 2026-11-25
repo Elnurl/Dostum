@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router';
 import { TabIcon } from '@/components/TabIcon';
 import { useApp } from '@/src/context/AppContext';
 import { tap } from '@/src/lib/haptics';
+import { brand } from '@/src/lib/ui';
 import { colors } from '@/src/theme';
 
 export default function SitterTabs() {
@@ -13,7 +14,7 @@ export default function SitterTabs() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.forest,
+        tabBarActiveTintColor: brand,
         tabBarInactiveTintColor: '#94A3B8',
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarStyle: {

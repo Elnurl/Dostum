@@ -6,7 +6,8 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/Header';
-import { Badge, Card, PrimaryButton, ScreenPad, Tap } from '@/components/ui';
+import { TrustStrip } from '@/components/TrustStrip';
+import { Badge, Card, GhostButton, PrimaryButton, ScreenPad, Tap } from '@/components/ui';
 import { SERVICES } from '@/src/data/catalog';
 import { useApp } from '@/src/context/AppContext';
 import { manat, SIZE_LABEL } from '@/src/lib/format';
@@ -16,7 +17,7 @@ import type { ServiceId } from '@/src/types';
 export default function SitterPublicProfile() {
   const { id, service } = useLocalSearchParams<{ id: string; service?: ServiceId }>();
   const insets = useSafeAreaInsets();
-  const { sitterById, favorites, toggleFavorite } = useApp();
+  const { sitterById, favorites, toggleFavorite, ensureChatWithSitter, chats } = useApp();
   const sitter = sitterById(id);
   const [serviceId, setServiceId] = useState<ServiceId>(
     (service as ServiceId) || sitter?.services[0]?.serviceId || 'geceleme',
@@ -33,6 +34,9 @@ export default function SitterPublicProfile() {
 
   const fav = favorites.includes(sitter.id);
   const offered = sitter.services.find((s) => s.serviceId === serviceId) ?? sitter.services[0];
+  const chat = chats.find((c) => c.sitterId === sitter.id && !c.sitterId.startsWith('owner-'));
+  const canBookDirect =
+    Boolean(chat?.bookingId) || chat?.meetGreet === 'hazir' || chat?.meetGreet === 'sifaris';
 
   return (
     <ScreenPad>
@@ -62,6 +66,9 @@ export default function SitterPublicProfile() {
           <Text className="text-muted ml-2">· {sitter.district}</Text>
         </View>
         <Text className="text-ink mt-3 leading-5">{sitter.bio}</Text>
+        <View className="mt-4">
+          <TrustStrip />
+        </View>
 
         <Text className="text-ink font-bold text-lg mt-5 mb-2">Xidmətlər</Text>
         {sitter.services.map((s) => {
@@ -137,14 +144,35 @@ export default function SitterPublicProfile() {
           </Text>
         </View>
         <PrimaryButton
-          label="Sifariş et"
-          onPress={() =>
-            router.push({
-              pathname: '/sifaris',
-              params: { sitterId: sitter.id, service: serviceId },
-            })
-          }
+          label="Mesaj yaz (pulsuz)"
+          onPress={() => {
+            const chatId = ensureChatWithSitter(sitter.id);
+            router.push(`/chat/${chatId}`);
+          }}
         />
+        <View className="h-2" />
+        {canBookDirect ? (
+          <GhostButton
+            label="Sifariş et"
+            onPress={() =>
+              router.push({
+                pathname: '/sifaris',
+                params: { sitterId: sitter.id, service: serviceId },
+              })
+            }
+          />
+        ) : (
+          <GhostButton
+            label="Sifariş (görüşdən sonra)"
+            onPress={() => {
+              const chatId = ensureChatWithSitter(sitter.id);
+              router.push(`/chat/${chatId}`);
+            }}
+          />
+        )}
+        <Text className="text-muted text-xs text-center mt-2">
+          Kart tələb olunmur — əvvəl pulsuz mesaj və qısa görüş tövsiyə olunur.
+        </Text>
       </View>
     </ScreenPad>
   );

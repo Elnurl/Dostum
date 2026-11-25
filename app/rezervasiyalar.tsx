@@ -43,7 +43,7 @@ export default function ReservationsScreen() {
               <Tap
                 key={b.id}
                 onPress={() => router.push(`/rezervasiya/${b.id}`)}
-                className="bg-white rounded-2xl p-4 mb-3">
+                className="bg-white border border-line rounded-2xl p-4 mb-3">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-ink font-semibold flex-1">{sitter?.name ?? 'Baxıcı'}</Text>
                   <StatusPill status={b.status} />

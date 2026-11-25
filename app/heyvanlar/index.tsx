@@ -21,7 +21,7 @@ export default function PetsScreen() {
             <Tap
               key={pet.id}
               onPress={() => router.push(`/heyvanlar/${pet.id}`)}
-              className="bg-white rounded-2xl p-3 mb-3 flex-row items-center">
+              className="bg-white border border-line rounded-2xl p-3 mb-3 flex-row items-center">
               {pet.photos[0] ? (
                 <Image
                   source={{ uri: pet.photos[0] }}
@@ -38,7 +38,7 @@ export default function PetsScreen() {
                 <Text className="text-muted text-sm">
                   {PET_TYPE_LABEL[pet.type]} · {pet.breed} · {pet.ageYears} yaş · {pet.weightKg} kq
                 </Text>
-                <Text className="text-forest text-xs mt-1">
+                <Text className="text-muted text-xs mt-1">
                   {pet.sex === 'erkek' ? 'Erkək' : 'Dişi'} · {pet.sterilized ? 'sterilizasiya olunub' : 'olunmayıb'}
                 </Text>
               </View>

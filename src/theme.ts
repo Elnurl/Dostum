@@ -1,12 +1,19 @@
+/** Loqo ayaq izi plakları + narinci nöqtə — bütün palitranın əsas mənbəyi */
 export const colors = {
   cream: '#FAF9F6',
   white: '#FFFFFF',
-  forest: '#2E6F40',
-  amber: '#D97706',
+  /** Ayaq izi / «dostum» yaşılı */
+  forest: '#2D6A35',
+  /** Giriş və əsas «plak» düymələri (tünd yaşıl) */
+  forestDark: '#245C2D',
+  /** Nöqtə və ikinci dərəcəli vurğu */
+  amber: '#E07B2D',
   ink: '#1E293B',
   muted: '#64748B',
   line: '#E7E5E4',
-  moss: '#E8F2EB',
+  /** Açıq plak / seçilmiş fon (yaşıl çalar) */
+  moss: '#E3EDE6',
   danger: '#DC2626',
-  badge: '#EF4444',
+  badge: '#E07B2D',
+  sheet: '#F4F4F8',
 } as const;

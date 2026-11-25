@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card, ScreenPad, StatusPill, Tap } from '@/components/ui';
+import { Card, ScreenHeader, ScreenPad, StatusPill, Tap } from '@/components/ui';
 import { useApp } from '@/src/context/AppContext';
 import { formatDateLong, SERVICE_LABEL, toIso, weekdayShort } from '@/src/lib/format';
+import { tap } from '@/src/lib/haptics';
+import { accent } from '@/src/lib/ui';
 import { colors } from '@/src/theme';
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { availability, toggleDay, bookings } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
   const [cursor, setCursor] = useState(() => {
     const n = new Date();
     return new Date(n.getFullYear(), n.getMonth(), 1);
@@ -30,13 +33,25 @@ export default function CalendarScreen() {
   }, [cursor]);
 
   const monthLabel = cursor.toLocaleDateString('az-AZ', { month: 'long', year: 'numeric' });
-  const monthBookings = bookings.filter((b) => b.status !== 'imtina' && b.forUserAs === 'sitter');
+  const monthBookings = bookings.filter((b) => b.status !== 'imtina' && (b.forUserAs === 'sitter' || b.forUserAs === 'owner'));
 
   return (
     <ScreenPad>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 32, paddingHorizontal: 20 }}>
-        <Text className="text-ink font-bold text-2xl">Təqvim</Text>
-        <Text className="text-muted text-sm mt-1 mb-4">Günə toxunun: boş / məşğul</Text>
+      <ScrollView
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 32, paddingHorizontal: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            tintColor={accent}
+            onRefresh={() => {
+              void tap();
+              setRefreshing(true);
+              setTimeout(() => setRefreshing(false), 500);
+            }}
+          />
+        }>
+        <ScreenHeader title="Təqvim" subtitle="Günə toxunun: boş / məşğul" />
+        <View className="mb-2" />
 
         <Card className="p-4 mb-4">
           <View className="flex-row items-center justify-between mb-3">
@@ -75,7 +90,7 @@ export default function CalendarScreen() {
                       busy ? 'bg-amber/20' : 'bg-moss'
                     }`}>
                     <Text className={`text-sm font-semibold ${busy ? 'text-amber' : 'text-forest'}`}>{cell.day}</Text>
-                    {hasBooking ? <View className="w-1 h-1 rounded-full bg-forest mt-0.5" /> : null}
+                    {hasBooking ? <View className="w-1 h-1 rounded-full bg-amber mt-0.5" /> : null}
                   </View>
                 </Tap>
               );

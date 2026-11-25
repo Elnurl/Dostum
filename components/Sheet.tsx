@@ -34,7 +34,7 @@ export function Sheet({
         </Animated.View>
         <Animated.View
           style={[sheetStyle, { paddingBottom: Math.max(insets.bottom, 16) }]}
-          className="bg-cream rounded-t-3xl px-5 pt-3 max-h-[88%]">
+          className="bg-sheet rounded-t-3xl px-5 pt-3 max-h-[88%]">
           <View className="w-12 h-1.5 bg-line rounded-full self-center mb-3" />
           {children}
         </Animated.View>

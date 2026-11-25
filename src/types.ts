@@ -8,8 +8,10 @@ export type PetSize = 'kicik' | 'orta' | 'boyuk';
 export type ServiceId = 'geceleme' | 'gunduz' | 'eve-bas-cekme' | 'it-gezdirme' | 'evde-gece-gunduz';
 export type BookingStatus = 'gozlemede' | 'aktiv' | 'tamamlanmis' | 'imtina';
 export type HomeType = 'menzil' | 'heyet';
-export type MessageKind = 'text' | 'photo' | 'system' | 'walk' | 'task';
+export type MessageKind = 'text' | 'photo' | 'video' | 'system' | 'walk' | 'task';
 export type DayStatus = 'free' | 'busy';
+/** Sittsy: pulsuz mesaj → görüş → sifariş */
+export type MeetGreetStage = 'mesaj' | 'gorus' | 'hazir' | 'sifaris';
 
 export type ServiceIdOrAll = ServiceId | 'all';
 
@@ -65,6 +67,7 @@ export type Sitter = {
   district: District;
   rating: number;
   reviewCount: number;
+  acceptsRecurring?: boolean;
   bio: string;
   verified: boolean;
   homeType: HomeType;
@@ -95,6 +98,7 @@ export type Booking = {
   status: BookingStatus;
   forUserAs: 'owner' | 'sitter';
   createdAt: string;
+  ownerReview?: { rating: number; text: string; at: string };
 };
 
 export type Chat = {
@@ -105,6 +109,8 @@ export type Chat = {
   photo: string;
   unread: number;
   bookingId?: string;
+  meetGreet?: MeetGreetStage;
+  freeChat?: boolean;
 };
 
 export type ChatMessage = {
@@ -114,6 +120,7 @@ export type ChatMessage = {
   kind: MessageKind;
   text: string;
   photoUri?: string;
+  videoUri?: string;
   at: string;
 };
 
@@ -176,10 +183,13 @@ export type SitterProfile = {
   idPhoto?: string;
   selfie?: string;
   fin: string;
+  planActive?: boolean;
+  qualityPassed?: boolean;
 };
 
 export type IncomingRequest = {
   id: string;
+  bookingId?: string;
   ownerName: string;
   petName: string;
   petType: PetType;

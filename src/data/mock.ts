@@ -59,6 +59,7 @@ export const SITTERS: Sitter[] = [
     district: 'Nəsimi',
     rating: 4.9,
     reviewCount: 38,
+    acceptsRecurring: true,
     verified: true,
     short: '3 ildir it və pişik qəbul edir, evdə kiçik bağçası var.',
     bio: 'Nəsimidə yaşayıram, evdə kiçik bağça və eyvan var. Leo kimi iri itləri də rahat qəbul edirəm. Hər gün foto və qısa hesabat göndərirəm.',
@@ -133,6 +134,7 @@ export const SITTERS: Sitter[] = [
   },
   {
     id: 's3',
+    acceptsRecurring: true,
     name: 'Nigar Hüseynova',
     photo: 'https://randomuser.me/api/portraits/women/44.jpg',
     district: 'Səbail',
@@ -385,6 +387,7 @@ export const CHATS: Chat[] = [
     photo: 'https://randomuser.me/api/portraits/men/32.jpg',
     unread: 2,
     bookingId: 'b2',
+    meetGreet: 'sifaris',
   },
   {
     id: 'c2',
@@ -394,6 +397,7 @@ export const CHATS: Chat[] = [
     photo: 'https://randomuser.me/api/portraits/women/65.jpg',
     unread: 0,
     bookingId: 'b1',
+    meetGreet: 'sifaris',
   },
   {
     id: 'c3',
@@ -403,6 +407,7 @@ export const CHATS: Chat[] = [
     photo: 'https://randomuser.me/api/portraits/women/44.jpg',
     unread: 0,
     bookingId: 'b3',
+    meetGreet: 'sifaris',
   },
 ];
 

@@ -3,7 +3,8 @@ import { useMemo, useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 
 import { Header } from '@/components/Header';
-import { Chip, PrimaryButton, ScreenPad } from '@/components/ui';
+import { TrustStrip } from '@/components/TrustStrip';
+import { Chip, GhostButton, PrimaryButton, ScreenPad } from '@/components/ui';
 import { PLATFORM_FEE, SERVICES } from '@/src/data/catalog';
 import { quotePrice, upcomingDays, useApp } from '@/src/context/AppContext';
 import { addDaysIso, formatDate, manat, PET_TYPE_LABEL } from '@/src/lib/format';
@@ -12,7 +13,7 @@ import type { ServiceId } from '@/src/types';
 
 export default function BookingScreen() {
   const { sitterId, service } = useLocalSearchParams<{ sitterId: string; service?: ServiceId }>();
-  const { sitterById, pets, createBooking } = useApp();
+  const { sitterById, pets, createBooking, chats, ensureChatWithSitter } = useApp();
   const sitter = sitterById(sitterId);
   const days = upcomingDays(8);
   const [serviceId, setServiceId] = useState<ServiceId>((service as ServiceId) || 'geceleme');
@@ -39,12 +40,20 @@ export default function BookingScreen() {
   }
 
   const offered = sitter.services.some((s) => s.serviceId === serviceId);
+  const chat = chats.find((c) => c.sitterId === sitter.id && !c.sitterId.startsWith('owner-'));
+  const meetReady =
+    !chat || Boolean(chat.bookingId) || chat.meetGreet === 'hazir' || chat.meetGreet === 'sifaris';
 
   function togglePet(id: string) {
     setPetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  function submit() {
+  function goChat() {
+    const chatId = ensureChatWithSitter(sitter!.id);
+    router.push(`/chat/${chatId}`);
+  }
+
+  function placeOrder() {
     if (!offered) {
       Alert.alert('Xidmət yoxdur', 'Bu baxıcı seçilmiş xidməti təklif etmir.');
       return;
@@ -62,14 +71,41 @@ export default function BookingScreen() {
     );
   }
 
+  function submit() {
+    if (meetReady) {
+      placeOrder();
+      return;
+    }
+    Alert.alert(
+      'Əvvəl tanışlıq',
+      'Pulsuz mesaj və qısa görüşdən sonra sifariş tövsiyə olunur. İstəsəniz çata keçin və ya birbaşa davam edin.',
+      [
+        { text: 'Çata keç', onPress: goChat },
+        { text: 'Birbaşa sifariş', style: 'destructive', onPress: placeOrder },
+        { text: 'Ləğv et', style: 'cancel' },
+      ],
+    );
+  }
+
   return (
     <ScreenPad>
       <Header title="Sifariş et" />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}>
         <Text className="text-ink font-bold text-xl">{sitter.name}</Text>
-        <Text className="text-muted mb-4">{sitter.district} · şəxsiyyəti {sitter.verified ? 'təsdiqlənib' : 'gözləmədə'}</Text>
+        <Text className="text-muted mb-3">{sitter.district} · şəxsiyyəti {sitter.verified ? 'təsdiqlənib' : 'gözləmədə'}</Text>
+        <TrustStrip compact />
 
-        <Text className="text-muted text-xs font-semibold mb-2">XİDMƏT</Text>
+        {!meetReady ? (
+          <View className="bg-moss border border-forest rounded-2xl p-3 mt-3">
+            <Text className="text-forest text-sm leading-5">
+              Mesaj → görüş → sifariş addımları tamamlanmayıb. Əvvəl çatda tanışlıq etmək tövsiyə olunur.
+            </Text>
+            <View className="h-2" />
+            <GhostButton label="Çata keç (pulsuz)" onPress={goChat} />
+          </View>
+        ) : null}
+
+        <Text className="text-muted text-xs font-semibold mb-2 mt-4">XİDMƏT</Text>
         <View className="flex-row flex-wrap mb-3">
           {SERVICES.filter((s) => sitter.services.some((x) => x.serviceId === s.id)).map((s) => (
             <Chip key={s.id} label={s.title} active={serviceId === s.id} onPress={() => setServiceId(s.id)} />
@@ -119,7 +155,7 @@ export default function BookingScreen() {
           </>
         )}
 
-        <View className="bg-white rounded-2xl p-4 mb-4">
+        <View className="bg-white border border-line rounded-2xl p-4 mb-4">
           <Row label={`Xidmət (${quote.qty} × ${manat(quote.price)})`} value={manat(quote.subtotal)} />
           <Row label={`Platforma xidmət haqqı (${Math.round(PLATFORM_FEE * 100)}%)`} value={manat(quote.fee)} />
           <View className="h-px bg-line my-2" />

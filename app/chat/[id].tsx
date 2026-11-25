@@ -4,6 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -13,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Header } from '@/components/Header';
+import { MeetGreetStrip } from '@/components/MeetGreetStrip';
 import { PhotoSheet } from '@/components/PhotoSheet';
 import { WalkMap } from '@/components/WalkMap';
 import { Chip, PrimaryButton, ScreenPad, Tap } from '@/components/ui';
@@ -35,11 +37,14 @@ export default function ChatScreen() {
     startWalk,
     stopWalk,
     sendReport,
+    setMeetGreet,
+    sitterById,
   } = useApp();
   const chat = chats.find((c) => c.id === id);
   const thread = useMemo(() => messages.filter((m) => m.chatId === id), [messages, id]);
   const [text, setText] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [videoMode, setVideoMode] = useState(false);
   const [tasks, setTasks] = useState<string[]>([]);
   const [note, setNote] = useState('');
 
@@ -49,8 +54,14 @@ export default function ChatScreen() {
 
   const booking = bookings.find((b) => b.id === chat?.bookingId);
   const walk = walks.find((w) => w.bookingId === booking?.id);
-  const isSitterChat = mode === 'sitter' && chat?.sitterId.startsWith('owner-');
+  const isSitterChat =
+    mode === 'sitter' &&
+    (chat?.sitterId.startsWith('owner-') || (booking?.forUserAs === 'owner' && booking?.status === 'aktiv'));
   const canReport = isSitterChat && booking?.status === 'aktiv';
+  const sitter = sitterById(chat?.sitterId ?? '');
+  const showMeetGreet =
+    mode === 'owner' && !booking && chat?.meetGreet !== 'sifaris' && !chat?.sitterId.startsWith('owner-');
+  const meetStage = chat?.meetGreet === 'sifaris' ? 'hazir' : chat?.meetGreet ?? 'mesaj';
 
   if (!chat) {
     return (
@@ -71,7 +82,24 @@ export default function ChatScreen() {
               <WalkMap walk={walk} />
             </View>
           ) : null}
+          {showMeetGreet ? (
+            <MeetGreetStrip
+              stage={meetStage}
+              sitterId={chat.sitterId}
+              serviceId={sitter?.services[0]?.serviceId}
+              onAdvance={(next) => setMeetGreet(chat.id, next)}
+            />
+          ) : null}
           {thread.map((m) => {
+            if (m.kind === 'system') {
+              return (
+                <View key={m.id} className="items-center mb-2">
+                  <View className="bg-moss rounded-xl px-3 py-2 max-w-[92%]">
+                    <Text className="text-forest text-xs text-center leading-4">{m.text}</Text>
+                  </View>
+                </View>
+              );
+            }
             const mine = m.fromMe === (mode === 'sitter' ? isSitterChat : true) || (mode === 'owner' && m.fromMe);
             const align = mine ? 'items-end' : 'items-start';
             const bubble = mine ? 'bg-forest' : 'bg-white';
@@ -79,12 +107,20 @@ export default function ChatScreen() {
             return (
               <View key={m.id} className={`${align} mb-2`}>
                 <View className={`${bubble} rounded-2xl px-3 py-2 max-w-[82%]`}>
-                  {m.photoUri ? (
+                  {m.photoUri && m.kind !== 'video' ? (
                     <Image
                       source={{ uri: m.photoUri }}
                       style={{ width: 200, height: 140, borderRadius: 12, marginBottom: 6 }}
                       contentFit="cover"
                     />
+                  ) : null}
+                  {m.videoUri ? (
+                    <Tap
+                      onPress={() => void Linking.openURL(m.videoUri!)}
+                      className="bg-moss rounded-xl px-3 py-2 mb-2 flex-row items-center">
+                      <Ionicons name="play-circle" size={22} color={colors.amber} />
+                      <Text className="text-forest font-semibold ml-2">Video hesabatı aç</Text>
+                    </Tap>
                   ) : null}
                   <Text className={fg}>{m.text}</Text>
                   <Text className={`${mine ? 'text-white/70' : 'text-muted'} text-[10px] mt-1`}>{formatTime(m.at)}</Text>
@@ -111,7 +147,7 @@ export default function ChatScreen() {
               value={note}
               onChangeText={setNote}
               placeholder="Qısa qeyd..."
-              className="bg-white rounded-xl px-3 py-2 text-ink mb-2"
+              className="bg-white border border-line rounded-xl px-3 py-2 text-ink mb-2"
             />
             <View className="flex-row gap-2 mb-2">
               {walk?.active ? (
@@ -120,17 +156,24 @@ export default function ChatScreen() {
                 </View>
               ) : (
                 <View className="flex-1">
-                  <PrimaryButton
-                    label="GPS gəzinti başlat"
-                    tone="forest"
-                    onPress={() => void startWalk(booking!.id, chat.id)}
-                  />
+                  <PrimaryButton label="GPS gəzinti başlat" onPress={() => void startWalk(booking!.id, chat.id)} />
                 </View>
               )}
               <Tap
-                onPress={() => setPhotoOpen(true)}
+                onPress={() => {
+                  setVideoMode(false);
+                  setPhotoOpen(true);
+                }}
                 className="w-14 rounded-2xl bg-white border border-line items-center justify-center">
                 <Ionicons name="camera-outline" size={22} color={colors.ink} />
+              </Tap>
+              <Tap
+                onPress={() => {
+                  setVideoMode(true);
+                  setPhotoOpen(true);
+                }}
+                className="w-14 rounded-2xl bg-white border border-line items-center justify-center">
+                <Ionicons name="videocam-outline" size={22} color={colors.ink} />
               </Tap>
             </View>
             <PrimaryButton
@@ -147,12 +190,12 @@ export default function ChatScreen() {
 
         <View
           style={{ paddingBottom: Math.max(insets.bottom, 10) }}
-          className="flex-row items-end px-4 pt-2 bg-cream">
+          className="flex-row items-end px-4 pt-2 bg-sheet border-t border-line">
           <TextInput
             value={text}
             onChangeText={setText}
             placeholder="Mesaj yazın..."
-            className="flex-1 bg-white rounded-2xl px-4 py-3 text-ink mr-2"
+            className="flex-1 bg-white border border-line rounded-2xl px-4 py-3 text-ink mr-2"
             multiline
           />
           <Tap
@@ -169,13 +212,15 @@ export default function ChatScreen() {
       <PhotoSheet
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
+        allowVideo={videoMode}
         onPicked={(uri) => {
           if (!booking) return;
           sendReport({
             bookingId: booking.id,
             chatId: chat.id,
-            note: note || 'Canlı foto hesabat',
-            photoUri: uri,
+            note: note || (videoMode ? 'Canlı video hesabat' : 'Canlı foto hesabat'),
+            photoUri: videoMode ? undefined : uri,
+            videoUri: videoMode ? uri : undefined,
             tasks,
           });
           setNote('');

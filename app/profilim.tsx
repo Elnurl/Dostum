@@ -60,7 +60,11 @@ function Field({
   return (
     <View className="mb-3">
       <Text className="text-muted text-xs font-semibold mb-1">{label.toUpperCase()}</Text>
-      <TextInput value={value} onChangeText={onChangeText} className="bg-white rounded-2xl px-4 py-3 text-ink" />
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        className="bg-white border border-line rounded-2xl px-4 py-3 text-ink"
+      />
     </View>
   );
 }

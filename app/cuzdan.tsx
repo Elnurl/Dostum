@@ -29,10 +29,9 @@ export default function WalletScreen() {
         {mode === 'sitter' ? (
           <Card className="p-4 mb-4">
             <Text className="text-muted text-xs">Çıxarışa hazır</Text>
-            <Text className="text-forest font-bold text-xl mt-1">{manat(wallet.sitterReady)}</Text>
+            <Text className="text-amber font-bold text-xl mt-1">{manat(wallet.sitterReady)}</Text>
             <View className="mt-3">
               <PrimaryButton
-                tone="forest"
                 label="Karta köçür"
                 disabled={wallet.sitterReady <= 0}
                 onPress={() => {
@@ -59,7 +58,7 @@ export default function WalletScreen() {
             placeholder="Son 4 rəqəm"
             keyboardType="number-pad"
             maxLength={4}
-            className="flex-1 bg-white rounded-2xl px-4 py-3 text-ink"
+            className="flex-1 bg-white border border-line rounded-2xl px-4 py-3 text-ink"
           />
           <View className="w-36">
             <PrimaryButton
@@ -78,7 +77,7 @@ export default function WalletScreen() {
 
         <Text className="text-ink font-bold mb-2">Promo-kod</Text>
         {wallet.promo ? (
-          <Text className="text-forest mb-4">{wallet.promo} tətbiq olundu · +10 ₼</Text>
+          <Text className="text-amber mb-4">{wallet.promo} tətbiq olundu · +10 ₼</Text>
         ) : (
           <View className="flex-row gap-2 mb-4">
             <TextInput
@@ -86,7 +85,7 @@ export default function WalletScreen() {
               onChangeText={setCode}
               autoCapitalize="characters"
               placeholder="DOSTUM10"
-              className="flex-1 bg-white rounded-2xl px-4 py-3 text-ink"
+              className="flex-1 bg-white border border-line rounded-2xl px-4 py-3 text-ink"
             />
             <View className="w-28">
               <PrimaryButton
@@ -124,7 +123,7 @@ export default function WalletScreen() {
                 {formatDate(tx.at.slice(0, 10))} · {formatTime(tx.at)}
               </Text>
             </View>
-            <Text className={`font-semibold ${tx.amount >= 0 ? 'text-forest' : 'text-ink'}`}>
+            <Text className={`font-semibold ${tx.amount >= 0 ? 'text-amber' : 'text-ink'}`}>
               {tx.amount > 0 ? '+' : ''}
               {manat(tx.amount)}
             </Text>

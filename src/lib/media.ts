@@ -24,6 +24,28 @@ export async function pickFromLibrary() {
   }
 }
 
+export async function pickVideo() {
+  try {
+    if (Platform.OS !== 'web') {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('İcazə lazımdır', 'Video seçmək üçün qalereyaya icazə verin.');
+        return null;
+      }
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      quality: 0.85,
+      videoMaxDuration: 45,
+    });
+    if (result.canceled) return null;
+    return result.assets[0]?.uri ?? null;
+  } catch {
+    Alert.alert('Xəta', 'Video seçilmədi.');
+    return null;
+  }
+}
+
 export async function takePhoto() {
   try {
     if (Platform.OS !== 'web') {

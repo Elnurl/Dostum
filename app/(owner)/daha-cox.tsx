@@ -8,6 +8,7 @@ import { PhotoSheet } from '@/components/PhotoSheet';
 import { Avatar, ScreenPad, Tap } from '@/components/ui';
 import { useApp } from '@/src/context/AppContext';
 import { tap } from '@/src/lib/haptics';
+import { accent } from '@/src/lib/ui';
 import { colors } from '@/src/theme';
 
 export default function MoreScreen() {
@@ -24,7 +25,7 @@ export default function MoreScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            tintColor={colors.forest}
+            tintColor={accent}
             onRefresh={() => {
               void tap();
               setRefreshing(true);
@@ -37,7 +38,7 @@ export default function MoreScreen() {
             <Avatar uri={user.avatar} name={`${user.firstName} ${user.lastName}`} size={112} />
             <Tap
               onPress={() => setPhotoOpen(true)}
-              className="absolute right-0 bottom-1 w-9 h-9 rounded-full bg-ink items-center justify-center border-2 border-cream">
+              className="absolute right-0 bottom-1 w-9 h-9 rounded-full bg-forest items-center justify-center border-2 border-white">
               <Ionicons name="camera" size={16} color="#fff" />
             </Tap>
           </View>
@@ -57,14 +58,14 @@ export default function MoreScreen() {
           <Quick icon="wallet-outline" label="Cüzdan" onPress={() => router.push('/cuzdan')} />
         </View>
 
-        <Tap onPress={() => router.push('/sevimliler')} className="bg-white rounded-2xl px-4 py-4 mb-3 flex-row items-center">
+        <Tap onPress={() => router.push('/sevimliler')} className="bg-white border border-line rounded-2xl px-4 py-4 mb-3 flex-row items-center">
           <View className="flex-1">
             <Text className="text-ink font-semibold text-base">Sevimli baxıcılar</Text>
             <Text className="text-muted text-sm mt-0.5">Yadda saxlanılan baxıcılar</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </Tap>
-        <Tap onPress={() => router.push('/rezervasiyalar')} className="bg-white rounded-2xl px-4 py-4 mb-4 flex-row items-center">
+        <Tap onPress={() => router.push('/rezervasiyalar')} className="bg-white border border-line rounded-2xl px-4 py-4 mb-4 flex-row items-center">
           <View className="flex-1">
             <Text className="text-ink font-semibold text-base">Rezervasiyalarım</Text>
             <Text className="text-muted text-sm mt-0.5">Gözləmədə, aktiv və tamamlanmış xidmətlər</Text>
@@ -72,6 +73,7 @@ export default function MoreScreen() {
           <Ionicons name="chevron-forward" size={18} color={colors.muted} />
         </Tap>
 
+        <Row icon="sparkles-outline" label="AI köməkçi" onPress={() => router.push('/(owner)/komekci')} />
         <Row icon="shield-checkmark-outline" label="Platforma zəmanəti" onPress={() => router.push('/zemanet')} />
         <Row icon="paw-outline" label="Baxıcı ol" onPress={() => router.push('/baxici-ol')} />
         <Row icon="settings-outline" label="Tənzimləmələr" onPress={() => router.push('/tenzimlemeler')} last />
@@ -87,7 +89,7 @@ export default function MoreScreen() {
 
 function Quick({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
   return (
-    <Tap onPress={onPress} className="flex-1 bg-white rounded-2xl py-4 items-center">
+    <Tap onPress={onPress} className="flex-1 bg-white border border-line rounded-2xl py-4 items-center">
       <Ionicons name={icon} size={26} color={colors.ink} />
       <Text className="text-ink text-xs font-medium mt-2 text-center">{label}</Text>
     </Tap>

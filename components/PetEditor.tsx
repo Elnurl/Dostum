@@ -33,7 +33,7 @@ export function PetEditor({ pet, onChange }: { pet: Pet; onChange: (pet: Pet) =>
         <Tap
           onPress={() => setOpen(true)}
           className="w-[88px] h-[88px] rounded-[14px] bg-white border border-dashed border-line items-center justify-center">
-          <Ionicons name="camera-outline" size={22} color={colors.forest} />
+          <Ionicons name="camera-outline" size={22} color={colors.amber} />
         </Tap>
       </View>
 
@@ -105,7 +105,7 @@ function Field({
         onChangeText={onChangeText}
         multiline={multiline}
         keyboardType={keyboard}
-        className="bg-white rounded-2xl px-4 py-3 text-ink"
+        className="bg-white border border-line rounded-2xl px-4 py-3 text-ink"
         placeholder={label}
       />
     </View>

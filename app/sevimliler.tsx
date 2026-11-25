@@ -16,8 +16,8 @@ export default function FavoritesScreen() {
         {list.length === 0 ? (
           <EmptyState title="Hələ sevimli yoxdur" text="Baxıcı profilində ürəyə toxunaraq yadda saxlayın." />
         ) : (
-          list.map((s) => (
-            <SitterCard key={s.id} sitter={s} onPress={() => router.push(`/baxici/${s.id}`)} />
+          list.map((s, i) => (
+            <SitterCard key={s.id} sitter={s} index={i} onPress={() => router.push(`/baxici/${s.id}`)} />
           ))
         )}
       </ScrollView>

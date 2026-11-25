@@ -15,7 +15,7 @@ export default function RootLayout() {
     <GestureHandlerRootView
       style={{
         flex: 1,
-        backgroundColor: Platform.OS === 'web' ? '#E8E4DC' : colors.cream,
+        backgroundColor: Platform.OS === 'web' ? '#E8E4DC' : colors.sheet,
       }}>
       <View
         style={
@@ -25,7 +25,7 @@ export default function RootLayout() {
                 width: '100%',
                 maxWidth: 430,
                 alignSelf: 'center',
-                backgroundColor: colors.cream,
+                backgroundColor: colors.sheet,
                 overflow: 'hidden',
               }
             : { flex: 1 }
@@ -36,7 +36,7 @@ export default function RootLayout() {
             <Stack
               screenOptions={{
                 headerShown: false,
-                contentStyle: { backgroundColor: colors.cream },
+                contentStyle: { backgroundColor: colors.sheet },
                 animation: 'slide_from_right',
               }}
             />

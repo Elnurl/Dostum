@@ -6,7 +6,7 @@ import { Alert, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PhotoSheet } from '@/components/PhotoSheet';
-import { Avatar, Card, Chip, GhostButton, PrimaryButton, ScreenPad, Tap } from '@/components/ui';
+import { Avatar, Card, Chip, GhostButton, ScreenHeader, ScreenPad, Tap } from '@/components/ui';
 import { SERVICES } from '@/src/data/catalog';
 import { useApp } from '@/src/context/AppContext';
 import { manat, SIZE_LABEL } from '@/src/lib/format';
@@ -39,7 +39,16 @@ export default function SitterProfileScreen() {
   return (
     <ScreenPad>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 40, paddingHorizontal: 20 }}>
-        <Text className="text-ink font-bold text-2xl">Baxıcı profili</Text>
+        <ScreenHeader title="Baxıcı profili" />
+        <Text className="text-muted text-xs font-semibold mb-2 mt-2">HAQQIMDA</Text>
+        <TextInput
+          value={sitter.bio}
+          onChangeText={(bio) => setSitter({ ...sitter, bio })}
+          multiline
+          placeholder="Baxıcı təcrübənizi və ev şəraitinizi yazın..."
+          className="bg-white rounded-2xl border border-line px-4 py-3 text-ink min-h-[88px] mb-4"
+        />
+
         <View className="items-center my-4">
           <Avatar uri={user.avatar} name={`${user.firstName} ${user.lastName}`} size={88} />
           <Text className="text-ink font-semibold text-lg mt-2">
@@ -62,11 +71,11 @@ export default function SitterProfileScreen() {
                 <Text className="flex-1 text-ink">
                   {meta?.title} — {manat(s.price)}/{s.unit}
                 </Text>
-                <Tap onPress={() => updatePrice(s.serviceId, Math.max(5, s.price - 1))} className="w-8 h-8 rounded-full bg-cream items-center justify-center">
+                <Tap onPress={() => updatePrice(s.serviceId, Math.max(5, s.price - 1))} className="w-8 h-8 rounded-full bg-white border border-line items-center justify-center">
                   <Text className="text-ink font-bold">−</Text>
                 </Tap>
                 <Tap onPress={() => updatePrice(s.serviceId, s.price + 1)} className="w-8 h-8 rounded-full bg-moss items-center justify-center ml-2">
-                  <Text className="text-forest font-bold">+</Text>
+                  <Text className="text-amber font-bold">+</Text>
                 </Tap>
               </View>
             );
@@ -102,21 +111,21 @@ export default function SitterProfileScreen() {
           <TextInput
             value={sitter.ownPetsNote}
             onChangeText={(ownPetsNote) => setSitter({ ...sitter, ownPetsNote })}
-            className="bg-cream rounded-xl px-3 py-2 mt-2 text-ink"
+            className="bg-white border border-line rounded-xl px-3 py-2 mt-2 text-ink"
             placeholder="Öz heyvanı haqqında qeyd"
           />
           <Text className="text-muted text-xs mt-3 mb-1">Təcrübə (il)</Text>
           <View className="flex-row items-center">
             <Tap
               onPress={() => setSitter({ ...sitter, experienceYears: Math.max(0, sitter.experienceYears - 1) })}
-              className="w-8 h-8 rounded-full bg-cream items-center justify-center">
+              className="w-8 h-8 rounded-full bg-white border border-line items-center justify-center">
               <Text>−</Text>
             </Tap>
             <Text className="mx-3 text-ink font-semibold">{sitter.experienceYears} il</Text>
             <Tap
               onPress={() => setSitter({ ...sitter, experienceYears: sitter.experienceYears + 1 })}
               className="w-8 h-8 rounded-full bg-moss items-center justify-center">
-              <Text className="text-forest">+</Text>
+              <Text className="text-amber">+</Text>
             </Tap>
           </View>
           <Text className="text-muted text-xs mt-3 mb-1">Rayon</Text>
@@ -140,7 +149,7 @@ export default function SitterProfileScreen() {
           <Tap
             onPress={() => setGalleryOpen(true)}
             className="w-20 h-20 rounded-xl bg-white border border-dashed border-line items-center justify-center">
-            <Ionicons name="add" size={22} color={colors.forest} />
+            <Ionicons name="add" size={22} color={colors.amber} />
           </Tap>
         </View>
 
@@ -153,9 +162,8 @@ export default function SitterProfileScreen() {
           </Tap>
         </Card>
 
-        <PrimaryButton
+        <GhostButton
           label="Sahib rejiminə qayıt"
-          tone="forest"
           onPress={() => {
             setMode('owner');
             router.replace('/(owner)');

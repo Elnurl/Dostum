@@ -2,16 +2,18 @@ import { Text, View } from 'react-native';
 
 import { Sheet } from '@/components/Sheet';
 import { GhostButton, PrimaryButton } from '@/components/ui';
-import { pickFromLibrary, takePhoto } from '@/src/lib/media';
+import { pickFromLibrary, pickVideo, takePhoto } from '@/src/lib/media';
 
 export function PhotoSheet({
   open,
   onClose,
   onPicked,
+  allowVideo = false,
 }: {
   open: boolean;
   onClose: () => void;
   onPicked: (uri: string) => void;
+  allowVideo?: boolean;
 }) {
   return (
     <Sheet open={open} onClose={onClose}>
@@ -34,6 +36,16 @@ export function PhotoSheet({
             onClose();
           }}
         />
+        {allowVideo ? (
+          <GhostButton
+            label="Video (qısa hesabat)"
+            onPress={async () => {
+              const uri = await pickVideo();
+              if (uri) onPicked(uri);
+              onClose();
+            }}
+          />
+        ) : null}
       </View>
     </Sheet>
   );
