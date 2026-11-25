@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GuaranteeHomeSection } from '@/components/GuaranteeHomeSection';
+import { HomeServiceRow } from '@/components/HomeServiceRow';
 import { PawMark } from '@/components/PawMark';
 import { Card, Divider, ScreenPad, SectionLabel, Tap } from '@/components/ui';
 import { SERVICES } from '@/src/data/catalog';
-import { accent } from '@/src/lib/ui';
 import { tap } from '@/src/lib/haptics';
+import { accent } from '@/src/lib/ui';
 import { colors } from '@/src/theme';
 
 export default function HomeScreen() {
@@ -27,9 +27,9 @@ export default function HomeScreen() {
   }
 
   return (
-    <ScreenPad className="bg-white">
+    <ScreenPad className="bg-sheet">
       <ScrollView
-        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 28, paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32, paddingHorizontal: 20 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -41,42 +41,35 @@ export default function HomeScreen() {
             }}
           />
         }>
-        <PawMark size={40} showWordmark />
-        <Text className="text-ink text-[26px] font-bold leading-8 mt-5">Dostunuz sevəcək baxıcı tapın</Text>
-        <Text className="text-muted text-sm mt-2 mb-6 leading-5">
-          Sifarişdən əvvəl mesaj yazın — kart tələb olunmur. Yaşıl + narinci dostum brendi ilə etibarlı qayğı.
-        </Text>
+        <PawMark size={36} showWordmark inline />
+        <Text className="text-ink text-[28px] font-bold leading-9 mt-6 mb-6">Dostunuz sevəcək baxıcı tapın</Text>
 
         <SectionLabel>Baxıcının evində</SectionLabel>
-        <Card className="mb-5 overflow-hidden">
+        <Card className="mb-6 overflow-hidden bg-white border-line">
           {sitterHome.map((service, i) => (
             <View key={service.id}>
               {i > 0 ? <Divider /> : null}
-              <Tap onPress={() => openSearch(service.id)} className="flex-row items-center px-4 py-3.5">
-                <Text className="text-3xl mr-3">{service.emoji}</Text>
-                <View className="flex-1 pr-2">
-                  <Text className="text-ink font-semibold text-base">{service.title}</Text>
-                  <Text className="text-muted text-sm mt-0.5">{service.description}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-              </Tap>
+              <HomeServiceRow
+                emoji={service.emoji}
+                title={service.title}
+                description={service.description}
+                onPress={() => openSearch(service.id)}
+              />
             </View>
           ))}
         </Card>
 
         <SectionLabel>Sizin evinizdə</SectionLabel>
-        <Card className="mb-5 overflow-hidden">
+        <Card className="mb-6 overflow-hidden bg-white border-line">
           {ownerHome.map((service, i) => (
             <View key={service.id}>
               {i > 0 ? <Divider /> : null}
-              <Tap onPress={() => openSearch(service.id)} className="flex-row items-center px-4 py-3.5">
-                <Text className="text-3xl mr-3">{service.emoji}</Text>
-                <View className="flex-1 pr-2">
-                  <Text className="text-ink font-semibold text-base">{service.title}</Text>
-                  <Text className="text-muted text-sm mt-0.5">{service.description}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
-              </Tap>
+              <HomeServiceRow
+                emoji={service.emoji}
+                title={service.title}
+                description={service.description}
+                onPress={() => openSearch(service.id)}
+              />
             </View>
           ))}
         </Card>
@@ -84,19 +77,17 @@ export default function HomeScreen() {
         <Tap
           onPress={() => openSearch()}
           className="bg-white border border-line rounded-2xl px-4 py-4 flex-row items-center">
-          <View className="w-10 h-10 rounded-full bg-moss items-center justify-center mr-3">
-            <Ionicons name="search" size={20} color={accent} />
+          <View className="w-11 h-11 rounded-full bg-moss items-center justify-center mr-3">
+            <Ionicons name="search" size={22} color={accent} />
           </View>
           <View className="flex-1">
             <Text className="text-forest font-bold text-base">
               Baxıcı tap<Text className="text-amber">.</Text>
             </Text>
-            <Text className="text-muted text-sm">Filtrlər və tarix</Text>
+            <Text className="text-muted text-sm mt-0.5">Filtrlər və tarix</Text>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Tap>
-
-        <GuaranteeHomeSection />
       </ScrollView>
     </ScreenPad>
   );
